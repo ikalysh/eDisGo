@@ -163,7 +163,7 @@ class Results:
     @property
     def i_res(self):
         """
-        Current results from power flow analysis in A.
+        Current results from power flow analysis in kA.
 
         Holds power flow analysis results for current for the last
         iteration step. Index of the DataFrame is a DatetimeIndex indicating
