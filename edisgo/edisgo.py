@@ -8,6 +8,7 @@ from edisgo.network import timeseries
 from edisgo.tools import pypsa_io, plots, tools
 from edisgo.flex_opt.reinforce_grid import reinforce_grid
 from edisgo.io.ding0_import import import_ding0_grid
+from edisgo.io.pypower_import import import_pypower_grid
 from edisgo.io.generators_import import oedb as import_generators_oedb
 from edisgo.tools.config import Config
 from edisgo.flex_opt.curtailment import CurtailmentControl
@@ -44,6 +45,9 @@ class EDisGo:
 
     ding0_grid : :obj:`str`
         Path to directory containing csv files of network to be loaded.
+    pypower_grid : dict
+        PYPOWER PPC dict. Only works with self provided time series as annual
+        consumption and peak load of loads are not provided.
     config_path : None or :obj:`str` or :obj:`dict`
         Path to the config directory. Options are:
 
@@ -211,7 +215,16 @@ class EDisGo:
 
         # instantiate topology object and load grid data
         self.topology = Topology(config=self.config)
-        self.import_ding0_grid(path=kwargs.get('ding0_grid', None))
+        if kwargs.get('ding0_grid', None) is not None:
+            self.import_ding0_grid(path=kwargs.get('ding0_grid'))
+        elif kwargs.get('pypower_grid', None) is not None:
+            self.import_pypower_grid(ppc=kwargs.get('pypower_grid'))
+        else:
+            raise AttributeError(
+                "You must either provide a path to a ding0 grid through the "
+                "`ding0_grid` parameter or a pypower grid topology "
+                "dictionary through the parameter `pypower_grid` in "
+                "order to import a grid topology to analyze.")
 
         # set up results and time series container
         self.results = Results(self)
@@ -290,6 +303,19 @@ class EDisGo:
         if path is not None:
             import_ding0_grid(path, self)
 
+    def import_pypower_grid(self, ppc):
+        """
+        Import pypower grid topology data from pypower dictionary.
+
+        Parameters
+        -----------
+        ppc : dict
+            Pypower grid dictionary.
+
+        """
+        if ppc is not None:
+            import_pypower_grid(ppc, self)
+
     def to_pypsa(self, **kwargs):
         """
         PyPSA network representation
@@ -311,7 +337,7 @@ class EDisGo:
                 Defaults to None, then all timesteps defined in
                 :meth:`~.edisgo.timeseries.timeindex` are chosen.
             aggregation specifications: only relevant when only exporting
-                MV grid, specifies the aggregation method for undelaying LV
+                MV grid, specifies the aggregation method for underlying LV
                 grid components. See :meth:`~.io.pypsa_io.append_lv_components`
                 for the available specifications for the optional parameters
                 aggregate_loads, aggregate_generators and aggregate_storages.
